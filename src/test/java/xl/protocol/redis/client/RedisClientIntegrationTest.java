@@ -8,7 +8,7 @@ import static org.hamcrest.core.Is.is;
 import static xl.protocol.redis.client.RedisCommand.*;
 import static xl.protocol.redis.message.Message.*;
 
-public class RedisClientTest {
+public class RedisClientIntegrationTest {
 
     private static final RedisClient client = new RedisClient("127.0.0.1", 6379);
 

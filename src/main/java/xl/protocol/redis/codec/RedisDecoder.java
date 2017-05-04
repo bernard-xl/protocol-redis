@@ -16,7 +16,7 @@ import static xl.protocol.redis.codec.Protocol.*;
 
 public class RedisDecoder extends ByteToMessageDecoder {
 
-    private static final int MAX_CONTENT_SIZE = 536870912;
+    private static final int MAX_CONTENT_SIZE = 536870912 + 2;
 
     private State state = State.DECODE_TYPE;
 
@@ -50,7 +50,7 @@ public class RedisDecoder extends ByteToMessageDecoder {
                 decodeBulkContent(in, switchingOut);
                 break;
             case DECODE_ARRAY_HEADER:
-                decodeArrayHeader(in, switchingOut);
+                decodeArrayHeader(in, arrayElements);
                 break;
         }
 
@@ -60,7 +60,7 @@ public class RedisDecoder extends ByteToMessageDecoder {
     }
 
     private void aggregateArray(List<Object> out) {
-        Iterator<Object> iter = out.iterator();
+        Iterator<Object> iter = arrayElements.iterator();
         Integer length = (Integer) iter.next();
         Array msg = aggregateArrayHelper(iter, length);
         out.add(msg);
@@ -153,7 +153,7 @@ public class RedisDecoder extends ByteToMessageDecoder {
 
     private void decodeBulkContent(ByteBuf in, List<Object> out) {
         if (in.readableBytes() > MAX_CONTENT_SIZE) {
-            // TODO: throw
+            throw new RedisCodecException("message payload exceed 512 MB");
         }
 
         if (in.readableBytes() < bulkLength + 2) {
@@ -180,8 +180,12 @@ public class RedisDecoder extends ByteToMessageDecoder {
             state = State.DECODE_TYPE;
         } else {
             out.add(length);
+            if (arrayLength == -1) {
+                arrayLength = length + 1;
+            } else {
+                arrayLength += length + 1;
+            }
             state = State.DECODE_TYPE;
-            arrayLength += length + 1;
         }
     }
 
@@ -189,7 +193,7 @@ public class RedisDecoder extends ByteToMessageDecoder {
         int lfIdx = in.forEachByte(ByteProcessor.FIND_LF);
         if (lfIdx == -1) {
             if (in.readableBytes() > MAX_CONTENT_SIZE) {
-                // TODO: throw
+                throw new RedisCodecException("message payload exceed 512 MB");
             }
             return null;
         }

@@ -3,6 +3,8 @@ package xl.protocol.redis.codec;
 import xl.protocol.redis.util.Bytes;
 
 public class Protocol {
+    private Protocol() {
+    }
 
     public static final byte MARKER_SIMPLE = '+';
     public static final byte MARKER_ERR = '-';
